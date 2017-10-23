@@ -1,0 +1,12 @@
+# depslib dependency file v1.0
+1508699856 source:c:\users\caina\documents\emulador\emulador\leitor.c
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+	<stdbool.h>
+	<stdint.h>
+
+1385320478 source:c:\users\caina\documents\emulador\emulador\main.c
+	<stdio.h>
+	<stdlib.h>
+
