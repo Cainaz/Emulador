@@ -4,7 +4,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-void carregarArquivo(char narq,unsigned char *memory, unsigned short pc){
+#include "Leitor.h"
+
+void carregarArquivo(const char narq, CHIP8 *chip,unsigned short pc){
 
     FILE *fp;
     fp = fopen(narq, "rb");
@@ -15,17 +17,17 @@ void carregarArquivo(char narq,unsigned char *memory, unsigned short pc){
       puts ("Erro ao ler arquivo \n");
       fclose (fp);
     }
-    resultado = fread(memory, sizeof(unsigned char),256,fp);
+    resultado = fread(chip->memory, sizeof(unsigned char),256,fp);
     printf("Numero de elementos lidos: %d",resultado);
     //p;
     fclose(fp);
 
 }
 
-void emular(unsigned char *memory, unsigned short pc, unsigned short *I, unsigned short *stack,){
+void emular(CHIP8 *chip, unsigned short pc){
 
   // Fetch opcode
-  unsigned short opcode = memory[pc] << 8 | memory[pc + 1];
+  unsigned short opcode = chip->memory[pc] << 8 | chip->memory[pc + 1];
 
   // Decode opcode
   switch(opcode & 0xF000)
@@ -51,8 +53,8 @@ void emular(unsigned char *memory, unsigned short pc, unsigned short *I, unsigne
         break;
 
     case 0x2000:
-            stack[sp] = pc;
-            ++sp;
+            chip->stack[chip->sp] = pc;
+            ++chip->sp;
             pc = opcode & 0x0FFF;
         break;
 
@@ -79,7 +81,7 @@ void emular(unsigned char *memory, unsigned short pc, unsigned short *I, unsigne
 
     case 0xA000: // ANNN: Sets I to the address NNN
 
-      I = opcode & 0x0FFF;
+      chip->I = opcode & 0x0FFF;
       pc += 2;
     break;
 
@@ -105,14 +107,18 @@ void emular(unsigned char *memory, unsigned short pc, unsigned short *I, unsigne
 
   // Update timers
 
-  /*if(delay_timer > 0)
-    --delay_timer;
+  if(chip->delay_timer > 0)
+    --chip->delay_timer;
 
-  if(sound_timer > 0)
+  if(chip->sound_timer > 0)
   {
-    if(sound_timer == 1)
+    if(chip->sound_timer == 1)
       printf("BEEP!\n");
-    --sound_timer;
-  }*/
+    --chip->sound_timer;
+  }
 
 }
+
+
+
+

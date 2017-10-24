@@ -10,3 +10,21 @@
 	<stdio.h>
 	<stdlib.h>
 
+1508858601 source:c:\users\caina\documents\emuladorgit\emulador\leitor.c
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+	<stdbool.h>
+	<stdint.h>
+	"Leitor.h"
+
+1508858989 source:c:\users\caina\documents\emuladorgit\emulador\main.c
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+	<stdbool.h>
+	<stdint.h>
+	"Leitor.h"
+
+1508859327 c:\users\caina\documents\emuladorgit\emulador\leitor.h
+
