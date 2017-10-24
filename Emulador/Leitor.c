@@ -6,7 +6,15 @@
 
 #include "Leitor.h"
 
-void carregarArquivo(const char narq, CHIP8 *chip,unsigned short pc){
+void inicializar(CHIP8 *chip)
+{
+    chip->delay_timer =0;
+    chip->I=0;
+    chip->sp=0;
+    chip->sound_timer=0;
+}
+
+void carregarArquivo(const char narq, CHIP8 *chip){
 
     FILE *fp;
     fp = fopen(narq, "rb");
@@ -24,10 +32,10 @@ void carregarArquivo(const char narq, CHIP8 *chip,unsigned short pc){
 
 }
 
-void emular(CHIP8 *chip, unsigned short pc){
+void emular(CHIP8 *chip){
 
   // Fetch opcode
-  unsigned short opcode = chip->memory[pc] << 8 | chip->memory[pc + 1];
+  unsigned short opcode = chip->memory[chip->pc] << 8 | chip->memory[chip->pc + 1];
 
   // Decode opcode
   switch(opcode & 0xF000)
@@ -53,9 +61,9 @@ void emular(CHIP8 *chip, unsigned short pc){
         break;
 
     case 0x2000:
-            chip->stack[chip->sp] = pc;
+            chip->stack[chip->sp] = chip->pc;
             ++chip->sp;
-            pc = opcode & 0x0FFF;
+            chip->pc = opcode & 0x0FFF;
         break;
 
     case 0x3000:
@@ -82,7 +90,7 @@ void emular(CHIP8 *chip, unsigned short pc){
     case 0xA000: // ANNN: Sets I to the address NNN
 
       chip->I = opcode & 0x0FFF;
-      pc += 2;
+      chip->pc += 2;
     break;
 
     case 0xB000:

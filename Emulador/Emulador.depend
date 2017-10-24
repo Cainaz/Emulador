@@ -10,7 +10,7 @@
 	<stdio.h>
 	<stdlib.h>
 
-1508858601 source:c:\users\caina\documents\emuladorgit\emulador\leitor.c
+1508863384 source:c:\users\caina\documents\emuladorgit\emulador\leitor.c
 	<stdio.h>
 	<stdlib.h>
 	<string.h>
@@ -18,7 +18,7 @@
 	<stdint.h>
 	"Leitor.h"
 
-1508858989 source:c:\users\caina\documents\emuladorgit\emulador\main.c
+1508863218 source:c:\users\caina\documents\emuladorgit\emulador\main.c
 	<stdio.h>
 	<stdlib.h>
 	<string.h>
@@ -26,5 +26,5 @@
 	<stdint.h>
 	"Leitor.h"
 
-1508859327 c:\users\caina\documents\emuladorgit\emulador\leitor.h
+1508863221 c:\users\caina\documents\emuladorgit\emulador\leitor.h
 

@@ -10,16 +10,6 @@
 
 CHIP8 chip;
 int main(int argc, char argv[]){
-    //funções de base
-
-    unsigned char memory[4096];
-    unsigned char V[16];
-    unsigned short I=0;
-    unsigned char delay_timer;
-    unsigned char sound_timer;
-    unsigned short stack[16];
-    unsigned short sp =0;
-    unsigned char key[16];
 
 
     if(argc!=3){
@@ -30,10 +20,10 @@ int main(int argc, char argv[]){
     strncpy(narq, argv[1], MAX_FILENAME);
     unsigned short pc = atoi(argv[2]);
     printf("%s:%d\n",narq,pc);
-
-
-    carregarArquivo(narq, &chip, pc);
-    emular(&chip, pc);
+    chip.pc = pc;
+    inicializar(&chip); //inicializando variaveis do chip8
+    carregarArquivo(narq, &chip); //carrega os arquivos na memoria
+    emular(&chip); //funcao que emula
 
 return 0;
 }

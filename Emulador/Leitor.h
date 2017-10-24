@@ -12,9 +12,12 @@ typedef struct chip8
     unsigned short stack[16];
     unsigned short sp;
     unsigned char key[16];
+    unsigned short pc;
 }CHIP8;
+
 //funcoes
-void carregarArquivo(const char narq, CHIP8 *chip,unsigned short pc);
-void emular(CHIP8 *chip, unsigned short pc);
+void inicializar(CHIP8 *chip);
+void carregarArquivo(const char narq, CHIP8 *chip);
+void emular(CHIP8 *chip);
 
 
