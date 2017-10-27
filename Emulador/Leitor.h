@@ -1,9 +1,11 @@
 #ifndef LEITOR_H_INCLUDED
 #define LEITOR_H_INCLUDED
-
+#define memsize 4096
 #endif // LEITOR_H_INCLUDED
+
 typedef struct chip8
 {
+    unsigned short opcode;
     unsigned char memory[4096];
     unsigned char V[16];
     unsigned short I;
@@ -16,8 +18,8 @@ typedef struct chip8
 }CHIP8;
 
 //funcoes
-void inicializar(CHIP8 *chip);
-void carregarArquivo(const char narq, CHIP8 *chip);
-void emular(CHIP8 *chip);
+void inicializar(CHIP8 *);
+void carregarArquivo(const char* , CHIP8 *);
+void emular(CHIP8 *);
 
 
