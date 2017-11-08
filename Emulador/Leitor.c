@@ -3,7 +3,52 @@
 #include <string.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <allegro5/allegro.h>
+#include <allegro5/allegro_native_dialog.h>
 #include "Leitor.h"
+//definindo biblioteca grafica
+ALLEGRO_DISPLAY *janela = NULL;
+ALLEGRO_EVENT_QUEUE *fila_eventos = NULL;
+//definindo chip fontset
+
+static int chipmap[16]=
+{
+    ALLEGRO_KEY_0,
+    ALLEGRO_KEY_1,
+    ALLEGRO_KEY_2,
+    ALLEGRO_KEY_3,
+    ALLEGRO_KEY_4,
+    ALLEGRO_KEY_5,
+    ALLEGRO_KEY_6,
+    ALLEGRO_KEY_7,
+    ALLEGRO_KEY_8,
+    ALLEGRO_KEY_9,
+    ALLEGRO_KEY_A,
+    ALLEGRO_KEY_B,
+    ALLEGRO_KEY_C,
+    ALLEGRO_KEY_D,
+    ALLEGRO_KEY_E,
+    ALLEGRO_KEY_F
+};
+unsigned char chip8_fontset[80] =
+{
+  0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
+  0x20, 0x60, 0x20, 0x20, 0x70, // 1
+  0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
+  0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
+  0x90, 0x90, 0xF0, 0x10, 0x10, // 4
+  0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
+  0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
+  0xF0, 0x10, 0x20, 0x40, 0x40, // 7
+  0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
+  0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
+  0xF0, 0x90, 0xF0, 0x90, 0x90, // A
+  0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
+  0xF0, 0x80, 0x80, 0x80, 0xF0, // C
+  0xE0, 0x90, 0x90, 0x90, 0xE0, // D
+  0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
+  0xF0, 0x80, 0xF0, 0x80, 0x80  // F
+};
 
 void inicializar(CHIP8 *chip)
 {
@@ -41,6 +86,9 @@ void carregarArquivo(const char *narq, CHIP8 *chip){
 }
 
 void emular(CHIP8 *chip){
+    uint8_t * keys;
+    int y, x, vx, vy, times, i;
+    unsigned height, pixel;
 
   // Fetch opcode
   chip->opcode = chip->memory[chip->pc] << 8 | chip->memory[chip->pc + 1];
@@ -53,7 +101,8 @@ void emular(CHIP8 *chip){
         switch(chip->opcode & 0x000F)
         {
             case 0x0000: //limpa a tela
-
+                memset(chip->graphics, 0, sizeof(chip->graphics));
+                chip->pc += 2;
 
             break;
 
@@ -201,9 +250,26 @@ void emular(CHIP8 *chip){
     break;
 
     case 0xD000:
+        vx = chip->V[(chip->opcode & 0x0F00) >> 8];
+        vy = chip->V[(chip->opcode & 0x00F0) >> 4];
+        height = chip->opcode & 0x000F;
+        chip->V[0xF] &= 0;
+
+        for(y = 0; y < height; y++){
+            pixel = chip->memory[chip->I + y];
+            for(x = 0; x < 8; x++){
+                if(pixel & (0x80 >> x)){
+                    if(chip->graphics[x+vx+(y+vy)*64])
+                        chip->V[0xF] = 1;
+                    chip->graphics[x+vx+(y+vy)*64] ^= 1;
+                }
+            }
+        }
+        chip->drawflag = 1;
+        chip->pc += 2;
     break;
 
-    case 0xE000:
+    case 0xE000: //keys***
     break;
 
     case 0xF000:
@@ -280,7 +346,64 @@ void emular(CHIP8 *chip){
   }
 
 }
+void desenhar(CHIP8 * chip)
+{
+    int x, y;
 
+    for(y = 0; y < 32; y++)
+    {
+        for(x = 0; x < 64; x++)
+        {
+            if(chip->graphics[x] == 1)
+                al_draw_pixel(x, y, al_map_rgb(255,255,255));
+        }
+    }
 
+    al_flip_display();
+}
+void error_msg(char *text){
+	al_show_native_message_box(janela,"ERRO",
+		"Ocorreu o seguinte erro e o programa sera finalizado:",
+		text,NULL,ALLEGRO_MESSAGEBOX_ERROR);
+}
+int abrir_tela()
+{
+    int LARGURA_TELA = 64;
+    int ALTURA_TELA = 32;
+
+    if (!al_init())
+    {
+        error_msg("Falha ao inicializar a Allegro");
+        return 0;
+    }
+
+    if (!al_install_keyboard())
+    {
+        error_msg("Falha ao inicializar o teclado");
+        return 0;
+    }
+
+    janela = al_create_display(LARGURA_TELA, ALTURA_TELA);
+    if (!janela)
+    {
+        error_msg("Falha ao criar janela");
+        return 0;
+    }
+
+    fila_eventos = al_create_event_queue();
+    if (!fila_eventos){
+        error_msg("Falha ao criar fila de eventos");
+        al_destroy_display(janela);
+        return 0;
+    }
+
+    al_clear_to_color(al_map_rgb(0,0,0));
+    al_set_window_title(janela, "CHIP8");
+    al_flip_display();
+    al_register_event_source(fila_eventos, al_get_keyboard_event_source());
+    al_register_event_source(fila_eventos, al_get_display_event_source(janela));
+
+    return 1;
+}
 
 

@@ -1,7 +1,9 @@
-#ifndef LEITOR_H_INCLUDED
-#define LEITOR_H_INCLUDED
+//#ifndef LEITOR_H_INCLUDED
+//#define LEITOR_H_INCLUDED
 #define memsize 4096
-#endif // LEITOR_H_INCLUDED
+
+//#endif // LEITOR_H_INCLUDED
+
 
 typedef struct chip8
 {
@@ -15,11 +17,16 @@ typedef struct chip8
     unsigned short sp;
     unsigned char key[16];
     unsigned short pc;
+    unsigned char graphics[64 * 32];
+    int drawflag;
 }CHIP8;
 
 //funcoes
 void inicializar(CHIP8 *);
 void carregarArquivo(const char* , CHIP8 *);
 void emular(CHIP8 *);
+void desenhar(CHIP8 *);
+int abrir_tela();
+
 
 

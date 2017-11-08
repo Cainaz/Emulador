@@ -10,7 +10,17 @@
 	<stdio.h>
 	<stdlib.h>
 
-1509325613 source:c:\users\caina\documents\emuladorgit\emulador\leitor.c
+1510083290 source:c:\users\caina\documents\emuladorgit\emulador\leitor.c
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+	<stdbool.h>
+	<stdint.h>
+	<allegro5/allegro.h>
+	<allegro5/allegro_native_dialog.h>
+	"Leitor.h"
+
+1510083342 source:c:\users\caina\documents\emuladorgit\emulador\main.c
 	<stdio.h>
 	<stdlib.h>
 	<string.h>
@@ -18,13 +28,5 @@
 	<stdint.h>
 	"Leitor.h"
 
-1509131104 source:c:\users\caina\documents\emuladorgit\emulador\main.c
-	<stdio.h>
-	<stdlib.h>
-	<string.h>
-	<stdbool.h>
-	<stdint.h>
-	"Leitor.h"
-
-1509131958 c:\users\caina\documents\emuladorgit\emulador\leitor.h
+1510082838 c:\users\caina\documents\emuladorgit\emulador\leitor.h
 
