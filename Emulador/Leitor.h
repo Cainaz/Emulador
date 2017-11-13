@@ -25,7 +25,7 @@ typedef struct chip8
 void inicializar(CHIP8 *);
 void carregarArquivo(const char* , CHIP8 *);
 void emular(CHIP8 *);
-void desenhar(CHIP8 *);
+int desenhar(CHIP8 *);
 int abrir_tela();
 
 

@@ -7,6 +7,7 @@
 
 CHIP8 chip;
 int main(int argc, char *argv[]){
+    int sair=0;
 
     /*if(argc!=1){
         puts("sintaxe: somente o nome do arquivo!");
@@ -26,15 +27,23 @@ int main(int argc, char *argv[]){
     exit(EXIT_FAILURE);
 }
 
-    for(;;){
+    while(!sair){
+    //printf("entrou no loop. %d", i);
     emular(&chip);
+    sair = desenhar(&chip);
     //funcao que emula
-    if(chip.drawflag == 1)
+    /*if(chip.drawflag == 1){
     desenhar(&chip);
-
-    if(chip.memory[i] == chip.memory[4096])
+    printf("desenhou algo na %d vez",i);
+    }*/
+    //desenhar(&chip);
+    //printf("desenhou algo na %d vez",i);
+    /*if(chip.memory[i] == chip.memory[4096])
         return 0;
     i++;
+    */
     }
+
+
 return 0;
 }
