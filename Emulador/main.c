@@ -8,31 +8,23 @@
 CHIP8 chip;
 int main(int argc, char *argv[]){
     int sair=0;
-
-    /*if(argc!=1){
-        puts("sintaxe: somente o nome do arquivo!");
-        exit(0);
-    }*/
     const char *narq= NULL;
     narq = argv[1];
-    printf("nome do arquivo: %s\n",narq);
+    printf("Nome do arquivo: %s\n",narq);
 
-    inicializar(&chip); //inicializando variaveis do chip8
-    carregarArquivo(narq, &chip); //carrega os arquivos na memoria
 
-    if(!abrir_tela())
+    inicializar_chip8(&chip); //inicializando variaveis do chip8
+    carregar_jogo(narq, &chip); //carrega os arquivos na memoria
+
+    if(!iniciar_alegro()) //inicializando alegro
   {
     puts("Falha ao inicializar a Allegro");
     exit(EXIT_FAILURE);
 }
-
     while(!sair){
-    //printf("entrou no loop. %d", i);
-    emular(&chip);
-    sair = tratar_teclas(&chip);
-
+    emular(&chip);     //Função de leitura dos opcodes
+    sair = ler_desenhar(&chip, narq); //função para desenhar a tela e ler as teclas
     }
-
 
 return 0;
 }

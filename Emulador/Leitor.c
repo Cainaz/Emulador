@@ -6,9 +6,7 @@
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_native_dialog.h>
 #include "Leitor.h"
-#define FPS 180.0
-#define LARGURA_TELA 640 +15
-#define ALTURA_TELA 320 +15
+
 //definindo biblioteca grafica
 ALLEGRO_DISPLAY *janela = NULL;
 ALLEGRO_EVENT_QUEUE *fila_eventos = NULL;
@@ -37,7 +35,7 @@ unsigned char chip8_fontset[80] =
   0xF0, 0x80, 0xF0, 0x80, 0x80  // F
 };
 
-void inicializar(CHIP8 *chip)
+void inicializar_chip8(CHIP8 *chip)
 {
     chip->opcode = 0;
     chip->delay_timer =0;
@@ -48,7 +46,7 @@ void inicializar(CHIP8 *chip)
     chip->drawflag = 0;
 }
 
-void carregarArquivo(const char *narq, CHIP8 *chip){
+void carregar_jogo(const char *narq, CHIP8 *chip){
 
     FILE *fp;
     fp = fopen(narq, "rb");
@@ -63,12 +61,7 @@ void carregarArquivo(const char *narq, CHIP8 *chip){
     resultado = fread(chip->memory+0x200, 1,memsize-0x200,fp);
 
     printf("Numero de elementos lidos: %d\n", resultado);
-
-    for(int i=0; i<memsize;i++)
-    {
-        printf("variavel em [%d]: %x\n",i,chip->memory[i]);
-    }
-    //p;
+    printf("JOGO CARREGADO!\n");
     fclose(fp);
 
 }
@@ -298,14 +291,14 @@ void emular(CHIP8 *chip){
             case 0x000A://keys***
             {
                 bool teclaPressionada = 0;
-                for(i = 0; i < 16; i++)
+                for(i = 0; i < 16; i++){
                             if(chip->key[i] !=0){
                                 chip->V[(chip->opcode & 0x0F00) >> 8] = i;
                                 teclaPressionada = true;
                             }
-                if(chip->key[i] != 1)
-                    return;
-
+                             if(chip->key[i] != 1)
+                                return;
+                }
                 chip->pc += 2;
             }
             break;
@@ -355,7 +348,7 @@ void emular(CHIP8 *chip){
                 chip->pc += 2;
             break;
 
-            default: printf("Opcode desconhecido: %X\n", chip->opcode);
+            default: printf("Opcode desconhecido: 0x%X\n", chip->opcode);
         }
     break;
 
@@ -365,73 +358,23 @@ void emular(CHIP8 *chip){
 
 
   // atualizar timers
-
   if(chip->delay_timer > 0)
-    --chip->delay_timer;
+    chip->delay_timer = chip->delay_timer - 1;
 
   if(chip->sound_timer > 0)
   {
     if(chip->sound_timer == 1)
-      printf("BEEP!\n");
-    --chip->sound_timer;
+        printf("BEEP!\n");
+    chip->sound_timer = chip->sound_timer - 1;
   }
 
 }
-/*int desenhar(CHIP8 * chip)
-{
-        ALLEGRO_EVENT evento;
-        al_wait_for_event(fila_eventos, &evento);
-
-        if(evento.type == ALLEGRO_EVENT_TIMER){
-            chip->drawflag=1;
-        }
-        else if(evento.type == ALLEGRO_EVENT_DISPLAY_CLOSE) {
-            sair = 1;
-        }
-
-        if(chip->drawflag && al_is_event_queue_empty(fila_eventos)) {
-
-            al_clear_to_color(al_map_rgb(0,0,0));
-            printf("desenhando\n");
-            int eixox=0,eixoy=0;
-
-            for(int l=0; l < 2048;l++){
-                unsigned char test = chip->graphics[l];
-
-                if(eixox==64){
-                    eixox=0;
-                    eixoy+=1;
-                }
-                if(test == 1){
-                    al_set_target_bitmap(al_get_backbuffer(janela));
-                    al_draw_bitmap(quadrado,eixox*10, eixoy*10, 0);
-                    al_set_target_bitmap(quadrado);
-                    al_clear_to_color(al_map_rgb(255, 255, 255));
-
-                }
-                else{
-                    al_set_target_bitmap(al_get_backbuffer(janela));
-                    al_draw_bitmap(quadrado,eixox*10, eixoy*10, 0);
-                    al_set_target_bitmap(quadrado);
-                    al_clear_to_color(al_map_rgb(0, 0, 0));
-                }
-                eixox+=1;
-            }
-
-        al_flip_display();
-
-        chip->drawflag = 0;
-        }
-        if(sair==1)
-            return 1;
-}
-*/
 void error_msg(char *text){
 	al_show_native_message_box(janela,"ERRO",
 		"Ocorreu o seguinte erro e o programa sera finalizado:",
 		text,NULL,ALLEGRO_MESSAGEBOX_ERROR);
 }
-int abrir_tela()
+int iniciar_alegro()
 {
     if (!al_init()){
         error_msg("Falha ao inicializar a Allegro");
@@ -466,11 +409,6 @@ int abrir_tela()
         return 0;
     }
 
-    /*al_set_target_bitmap(quadrado);
-    al_clear_to_color(al_map_rgb(255, 0, 0));
-    al_set_target_bitmap(al_get_backbuffer(janela));*/
-
-
     fila_eventos = al_create_event_queue();
     if(!fila_eventos) {
         error_msg("Falha ao criar fila de eventos");
@@ -489,19 +427,18 @@ int abrir_tela()
 
     return 1;
 }
-int tratar_teclas(CHIP8 * chip)
+int ler_desenhar(CHIP8 * chip, const char *narq)
 {
-
        ALLEGRO_EVENT evento;
-        //espera ate que algum evento esteja na fila
 
+        //espera ate que algum evento esteja na fila
         al_wait_for_event(fila_eventos, &evento);
 
         if(evento.type == ALLEGRO_EVENT_TIMER)
             chip->drawflag = true;
 
         else if (evento.type == ALLEGRO_EVENT_DISPLAY_CLOSE)
-            return 1;
+            return fechar_jogo();
         //se o evento for pressionar uma tecla
         else if (evento.type == ALLEGRO_EVENT_KEY_DOWN)
         {
@@ -526,15 +463,15 @@ int tratar_teclas(CHIP8 * chip)
                     break;
                 //4
                 case ALLEGRO_KEY_Q:
-                    chip->key[0x4] = 1; printf("\n tecla Q");
+                    chip->key[0x4] = 1;
                     break;
                 //5
                 case ALLEGRO_KEY_W:
-                    chip->key[0x5] = 1; printf("\n tecla W");
+                    chip->key[0x5] = 1;
                     break;
                 //6
                 case ALLEGRO_KEY_E:
-                    chip->key[0x6] = 1; printf("\n tecla E");
+                    chip->key[0x6] = 1;
                     break;
                 //D
                 case ALLEGRO_KEY_R:
@@ -557,7 +494,7 @@ int tratar_teclas(CHIP8 * chip)
                     chip->key[0xE] = 1;
                     break;
                 //A
-                case ALLEGRO_KEY_Y:
+                case ALLEGRO_KEY_Z:
                     chip->key[0xA] = 1;
                     break;
                 //0
@@ -574,7 +511,11 @@ int tratar_teclas(CHIP8 * chip)
                     break;
 
                 case ALLEGRO_KEY_ESCAPE:
-                    return 1;
+                    return fechar_jogo();
+                    break;
+                case ALLEGRO_KEY_P:
+                    reset(chip, narq);
+                    printf("JOGO RESETADO!");
                     break;
 
             }
@@ -587,7 +528,7 @@ int tratar_teclas(CHIP8 * chip)
             {
                 //1
                 case ALLEGRO_KEY_1:
-                    chip->key[0x1] = 0; printf("\n tecla QQQQQQ");
+                    chip->key[0x1] = 0;
                     break;
                 //2
                 case ALLEGRO_KEY_2:
@@ -634,7 +575,7 @@ int tratar_teclas(CHIP8 * chip)
                     chip->key[0xE] = 0;
                     break;
                 //A
-                case ALLEGRO_KEY_Y:
+                case ALLEGRO_KEY_Z:
                     chip->key[0xA] = 0;
                     break;
                 //0
@@ -656,29 +597,29 @@ int tratar_teclas(CHIP8 * chip)
 
             al_clear_to_color(al_map_rgb(0,0,0));
             //printf("desenhando\n");
-            int eixox=0,eixoy=0;
+            int eixo_x=0,eixo_y=0;
 
-            for(int l=0; l < 2048;l++){
-                unsigned char test = chip->graphics[l];
+            for(int l=0; l < resolucao;l++){
+                unsigned char pintar = chip->graphics[l];
 
-                if(eixox==64){
-                    eixox=0;
-                    eixoy+=1;
+                if(eixo_x==64){
+                    eixo_x=0;
+                    eixo_y+=1;
                 }
-                if(test == 1){
+                if(pintar == 1){
                     al_set_target_bitmap(al_get_backbuffer(janela));
-                    al_draw_bitmap(quadrado,eixox*10, eixoy*10, 0);
+                    al_draw_bitmap(quadrado,eixo_x*10, eixo_y*10, 0);
                     al_set_target_bitmap(quadrado);
                     al_clear_to_color(al_map_rgb(255, 255, 255));
 
                 }
                 else{
                     al_set_target_bitmap(al_get_backbuffer(janela));
-                    al_draw_bitmap(quadrado,eixox*10, eixoy*10, 0);
+                    al_draw_bitmap(quadrado,eixo_x*10, eixo_y*10, 0);
                     al_set_target_bitmap(quadrado);
                     al_clear_to_color(al_map_rgb(0, 0, 0));
                 }
-                eixox+=1;
+                eixo_x+=1;
             }
 
         al_flip_display();
@@ -686,4 +627,15 @@ int tratar_teclas(CHIP8 * chip)
 
         return 0;
     }
+int fechar_jogo(){
+    al_destroy_bitmap(quadrado);
+	al_destroy_timer(timer);
+	al_destroy_display(janela);
+	al_destroy_event_queue(fila_eventos);
 
+return 1;
+}
+void reset(CHIP8 * chip, const char *narq){
+    inicializar_chip8(chip);
+    carregar_jogo(narq, chip);
+}
