@@ -13,7 +13,6 @@ int main(int argc, char *argv[]){
         puts("sintaxe: somente o nome do arquivo!");
         exit(0);
     }*/
-    int i = 0;
     const char *narq= NULL;
     narq = argv[1];
     printf("nome do arquivo: %s\n",narq);
@@ -30,18 +29,8 @@ int main(int argc, char *argv[]){
     while(!sair){
     //printf("entrou no loop. %d", i);
     emular(&chip);
-    sair = desenhar(&chip);
-    //funcao que emula
-    /*if(chip.drawflag == 1){
-    desenhar(&chip);
-    printf("desenhou algo na %d vez",i);
-    }*/
-    //desenhar(&chip);
-    //printf("desenhou algo na %d vez",i);
-    /*if(chip.memory[i] == chip.memory[4096])
-        return 0;
-    i++;
-    */
+    sair = tratar_teclas(&chip);
+
     }
 
 

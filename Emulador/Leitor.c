@@ -6,7 +6,7 @@
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_native_dialog.h>
 #include "Leitor.h"
-#define FPS 60.0
+#define FPS 180.0
 #define LARGURA_TELA 640 +15
 #define ALTURA_TELA 320 +15
 //definindo biblioteca grafica
@@ -14,29 +14,9 @@ ALLEGRO_DISPLAY *janela = NULL;
 ALLEGRO_EVENT_QUEUE *fila_eventos = NULL;
 ALLEGRO_TIMER *timer = NULL;
 ALLEGRO_BITMAP *quadrado = NULL;
-int sair =0;
+int sair = 0;
 
 //definindo chip fontset
-
-static int chipmap[16]=
-{
-    ALLEGRO_KEY_0,
-    ALLEGRO_KEY_1,
-    ALLEGRO_KEY_2,
-    ALLEGRO_KEY_3,
-    ALLEGRO_KEY_4,
-    ALLEGRO_KEY_5,
-    ALLEGRO_KEY_6,
-    ALLEGRO_KEY_7,
-    ALLEGRO_KEY_8,
-    ALLEGRO_KEY_9,
-    ALLEGRO_KEY_A,
-    ALLEGRO_KEY_B,
-    ALLEGRO_KEY_C,
-    ALLEGRO_KEY_D,
-    ALLEGRO_KEY_E,
-    ALLEGRO_KEY_F
-};
 unsigned char chip8_fontset[80] =
 {
   0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -94,7 +74,7 @@ void carregarArquivo(const char *narq, CHIP8 *chip){
 }
 
 void emular(CHIP8 *chip){
-    uint8_t * keys;
+    unsigned short * keys;
     int y, x, i =0;
     unsigned short vx, vy =0;
     unsigned short height, pixel=0;
@@ -116,8 +96,9 @@ void emular(CHIP8 *chip){
             break;
 
             case 0x000E: //retorna de uma subrotina
-                chip->pc = chip->stack[(--chip->sp)&0xF] + 2;
-
+                chip->sp = chip->sp - 1;
+                chip->pc = chip->stack[chip->sp];
+                chip->pc += 2;
             break;
 
             default:
@@ -150,7 +131,7 @@ void emular(CHIP8 *chip){
     break;
 
     case 0x5000: //se Vx for igual a Vy pular a proxima instrucao
-            if(chip->V[(chip->opcode & 0x0F00) >> 8 ] == chip->V[(chip->opcode & 0x00F0) >> 8])
+            if(chip->V[(chip->opcode & 0x0F00) >> 8 ] == chip->V[(chip->opcode & 0x00F0) >> 4])
                 chip->pc += 4;
             else
                 chip->pc += 2;
@@ -190,36 +171,38 @@ void emular(CHIP8 *chip){
                 break;
 
                 case 0x0004: //adiciona Vy em Vx. VF é setado em 1 quando há um carry, e para 0 se não houver
-                    if(((int)chip->V[(chip->opcode & 0x0F00) >> 8] + (int)chip->V[(chip->opcode & 0x00F0) >> 4]) < 256)
-                        chip->V[0xF] &= 0;
-                    else
+                    if(chip->V[(chip->opcode & 0x00F0) >> 4] > (chip->V[(chip->opcode & 0x0F00) >> 8]))
                         chip->V[0xF] = 1;
+                    else
+                        chip->V[0xF] = 0;
 
-                    chip->V[(chip->opcode & 0x0F00) >> 8] += chip->V[(chip->opcode & 0x00F0) >> 4];
+                    chip->V[(chip->opcode & 0x0F00) >> 8] = chip->V[(chip->opcode & 0x0F00) >> 8] + chip->V[(chip->opcode & 0x00F0) >> 4];
+
                     chip->pc += 2;
                 break;
 
                 case 0x0005: //Subtrai Vy de Vx. VF é setado em 0 se houver um "borrow" ou em 1 se não houver
-                    if(((int)chip->V[(chip->opcode & 0x0F00) >> 8] - (int)chip->V[(chip->opcode & 0x00F0) >> 4]) >= 0)
-                        chip->V[0xF] = 1;
+                    if(chip->V[(chip->opcode & 0x00F0) >> 4] > chip->V[(chip->opcode & 0x0F00) >> 8])
+                        chip->V[0xF] = 0;
                     else
-                        chip->V[0xF] &= 0;
+                        chip->V[0xF] = 1;
 
                     chip->V[(chip->opcode & 0x0F00) >> 8] -= chip->V[(chip->opcode & 0x00F0) >> 4];
+
                     chip->pc += 2;
                 break;
 
                 case 0x0006: //Shifts Vx para direita em 1. Vf é shiftado para direita antes de Vx antes da shifitada
-                    chip->V[0xF] = chip->V[(chip->opcode & 0x0F00) >> 8] & 7;
+                    chip->V[0xF] = chip->V[(chip->opcode & 0x0F00) >> 8] & 0x01;
                     chip->V[(chip->opcode & 0x0F00) >> 8] = chip->V[(chip->opcode & 0x0F00) >> 8] >> 1;
                     chip->pc +=2;
                 break;
 
                 case 0x0007: //Seta Vx para Vy - Vx. VF é setado para 0 quando exist um "borrow" ou para 1 caso exista
-                    if(((int)chip->V[(chip->opcode & 0x0F00) >> 8] - (int)chip->V[(chip->opcode & 0x00F0) >> 4]) > 0)
-                        chip->V[0xF] = 1;
+                    if(chip->V[(chip->opcode & 0x0F00) >> 8] > chip->V[(chip->opcode & 0x00F0) >> 4])
+                        chip->V[0xF] = 0;
                     else
-                        chip->V[0xF] &= 0;
+                        chip->V[0xF] = 1;
 
                     chip->V[(chip->opcode & 0x0F00) >> 8] = chip->V[(chip->opcode & 0x00F0) >> 4] - chip->V[(chip->opcode & 0x0F00) >> 8];
                     chip->pc += 2;
@@ -237,10 +220,10 @@ void emular(CHIP8 *chip){
         break;
 
     case 0x9000: // se Vx não for igual a Vy, pula a próxima instrução
-            if(chip->V[(chip->opcode & 0x0F00) >> 8] != chip->V[(chip->opcode & 0x00F0) >> 4])
-                chip->pc +=4;
-            else
-                chip->pc +=2;
+        if(chip->V[(chip->opcode & 0x0F00) >> 8] != chip->V[(chip->opcode & 0x00F0) >> 4])
+            chip->pc +=4;
+        else
+            chip->pc +=2;
     break;
 
     case 0xA000: // Seta I para NNN
@@ -250,11 +233,11 @@ void emular(CHIP8 *chip){
     break;
 
     case 0xB000: // Jump para o endereço NNN mais V0
-        chip->pc = (chip->opcode & 0x0FFF) + chip->V[0];
+        chip->pc = chip->V[0] + (chip->opcode & 0x0FFF);
     break;
 
     case 0xC000: //Seta Vx sem um numero aleatório and com NN
-        chip->V[(chip->opcode & 0x0F00) >> 8] = rand() & (chip->opcode & 0x00FF);
+        chip->V[(chip->opcode & 0x0F00) >> 8] = (rand() % 0xFF) & (chip->opcode & 0x00FF);
         chip->pc += 2;
     break;
 
@@ -262,11 +245,11 @@ void emular(CHIP8 *chip){
         vx = chip->V[(chip->opcode & 0x0F00) >> 8];
         vy = chip->V[(chip->opcode & 0x00F0) >> 4];
         height = chip->opcode & 0x000F;
-        //chip->V[0xF] &= 0;
+        chip->V[0xF] = 0;
 
         for(y = 0; y < height; y++){
             pixel = chip->memory[chip->I + y];
-            for(x = 0; x < 8; x++){
+            for(int x = 0; x < 8; x++){
                 if((pixel & (0x80 >> x))!= 0){
                     if(chip->graphics[(vx+x+((vy+y)*64))] == 1)
                     {
@@ -276,7 +259,7 @@ void emular(CHIP8 *chip){
                 }
             }
         }
-        chip->drawflag = 1;
+        chip->drawflag = true;
         chip->pc += 2;
     break;
 
@@ -284,15 +267,23 @@ void emular(CHIP8 *chip){
         switch(chip->opcode & 0x00FF)
             {
                 case 0x009E:
+                    if(chip->key[chip->V[(chip->opcode & 0x0F00) >> 8]] != 0)
+                            chip->pc += 4;
+                        else
+                            chip->pc += 2;
 
                 break;
 
                 case 0x00A1:
+                    if(chip->key[chip->V[(chip->opcode & 0x0F00) >> 8]] == 0)
+                            chip->pc += 4;
+                        else
+                            chip->pc += 2;
 
                 break;
 
                 default:
-                    printf ("ERROR");
+                    printf ("Opcode desconhecido: 0x%X\n", chip->opcode);
 }
     break;
 
@@ -304,8 +295,19 @@ void emular(CHIP8 *chip){
                 chip->pc += 2;
             break;
 
-            case 0x000A: //keys***
+            case 0x000A://keys***
+            {
+                bool teclaPressionada = 0;
+                for(i = 0; i < 16; i++)
+                            if(chip->key[i] !=0){
+                                chip->V[(chip->opcode & 0x0F00) >> 8] = i;
+                                teclaPressionada = true;
+                            }
+                if(chip->key[i] != 1)
+                    return;
 
+                chip->pc += 2;
+            }
             break;
 
             case 0x0015: //setar delay timer em Vx
@@ -319,25 +321,30 @@ void emular(CHIP8 *chip){
             break;
 
             case 0x001E: //setar Vx em I
-                chip->I = chip->V[(chip->opcode & 0x0F00) >> 8];
+                if(chip->I + chip->V[(chip->opcode & 0x0F00) >> 8] > 0xFFF)
+                    chip->V[0xF] = 1;
+                else
+                    chip->V[0xF] = 0;
+
+                chip->I = chip->I + chip->V[(chip->opcode & 0x0F00) >> 8];
                 chip->pc += 2;
             break;
 
             case 0x0029: //setar I na localização do sprite no caractere em Vx
-                chip->I = chip->V[(chip->opcode & 0x0F00) >> 8] * 5;
+                chip->I = chip->V[(chip->opcode & 0x0F00) >> 8] * 0x5;
                 chip->pc += 2;
             break;
 
             case 0x0033: //Salva o a representaçao decimal codificada em binario de Vx, com os 3 digitos mais significativos do endereço em I
                 chip->memory[chip->I] = chip->V[(chip->opcode & 0x0F00) >> 8] / 100;
                 chip->memory[chip->I+1] = (chip->V[(chip->opcode & 0x0F00) >> 8] / 10) % 10;
-                chip->memory[chip->I+2] = chip->V[(chip->opcode & 0x0F00) >> 8] % 10;
+                chip->memory[chip->I+2] = (chip->V[(chip->opcode & 0x0F00) >> 8] % 100) % 10;
                 chip->pc += 2;
             break;
 
             case 0x0055: //Salva V0 em Vx na no endereço de memoria de I
-                for(int i = 0; i <= ((chip->opcode & 0x0F00) >> 8); i++)
-                    chip->memory[chip->I + 1] = chip->V[i];
+                for(int i = 0; i <= chip->V[(chip->opcode & 0x0F00) >> 8]; i++)
+                    chip->memory[chip->I + i] = chip->V[i];
 
                 chip->pc += 2;
             break;
@@ -370,7 +377,7 @@ void emular(CHIP8 *chip){
   }
 
 }
-int desenhar(CHIP8 * chip)
+/*int desenhar(CHIP8 * chip)
 {
         ALLEGRO_EVENT evento;
         al_wait_for_event(fila_eventos, &evento);
@@ -418,6 +425,7 @@ int desenhar(CHIP8 * chip)
         if(sair==1)
             return 1;
 }
+*/
 void error_msg(char *text){
 	al_show_native_message_box(janela,"ERRO",
 		"Ocorreu o seguinte erro e o programa sera finalizado:",
@@ -431,7 +439,7 @@ int abrir_tela()
     }
 
     //cria o timer com o intervalo de tempo que ele ira disparar
-    timer = al_create_timer(0.1 / FPS);
+    timer = al_create_timer(1.0 / FPS);
     if(!timer) {
         error_msg("Falha ao criar temporizador");
         return 0;
@@ -453,6 +461,11 @@ int abrir_tela()
         al_destroy_display(janela);
         return 0;
     }
+    if (!al_install_keyboard()){
+        error_msg("Falha ao inicializar o teclado");
+        return 0;
+    }
+
     /*al_set_target_bitmap(quadrado);
     al_clear_to_color(al_map_rgb(255, 0, 0));
     al_set_target_bitmap(al_get_backbuffer(janela));*/
@@ -469,10 +482,208 @@ int abrir_tela()
 
     al_register_event_source(fila_eventos, al_get_display_event_source(janela));
     al_register_event_source(fila_eventos, al_get_timer_event_source(timer));
+    al_register_event_source(fila_eventos, al_get_keyboard_event_source());
     al_clear_to_color(al_map_rgb(0,0,0));
     al_flip_display();
     al_start_timer(timer);
 
     return 1;
 }
+int tratar_teclas(CHIP8 * chip)
+{
+
+       ALLEGRO_EVENT evento;
+        //espera ate que algum evento esteja na fila
+
+        al_wait_for_event(fila_eventos, &evento);
+
+        if(evento.type == ALLEGRO_EVENT_TIMER)
+            chip->drawflag = true;
+
+        else if (evento.type == ALLEGRO_EVENT_DISPLAY_CLOSE)
+            return 1;
+        //se o evento for pressionar uma tecla
+        else if (evento.type == ALLEGRO_EVENT_KEY_DOWN)
+        {
+            //verifica qual tecla foi pressionada
+            switch(evento.keyboard.keycode)
+            {
+                //1
+                case ALLEGRO_KEY_1:
+                    chip->key[0x1] = 1;
+                    break;
+                //2
+                case ALLEGRO_KEY_2:
+                    chip->key[0x2] = 1;
+                    break;
+                //3
+                case ALLEGRO_KEY_3:
+                    chip->key[0x3] = 1;
+                    break;
+                //C
+                case ALLEGRO_KEY_4:
+                    chip->key[0xC] = 1;
+                    break;
+                //4
+                case ALLEGRO_KEY_Q:
+                    chip->key[0x4] = 1; printf("\n tecla Q");
+                    break;
+                //5
+                case ALLEGRO_KEY_W:
+                    chip->key[0x5] = 1; printf("\n tecla W");
+                    break;
+                //6
+                case ALLEGRO_KEY_E:
+                    chip->key[0x6] = 1; printf("\n tecla E");
+                    break;
+                //D
+                case ALLEGRO_KEY_R:
+                    chip->key[0xD] = 1;
+                    break;
+                //7
+                case ALLEGRO_KEY_A:
+                    chip->key[0x7] = 1;
+                    break;
+                //8
+                case ALLEGRO_KEY_S:
+                    chip->key[0x8] = 1;
+                    break;
+                //9
+                case ALLEGRO_KEY_D:
+                    chip->key[0x9] = 1;
+                    break;
+                //E
+                case ALLEGRO_KEY_F:
+                    chip->key[0xE] = 1;
+                    break;
+                //A
+                case ALLEGRO_KEY_Y:
+                    chip->key[0xA] = 1;
+                    break;
+                //0
+                case ALLEGRO_KEY_X:
+                    chip->key[0x0] = 1;
+                    break;
+                //B
+                case ALLEGRO_KEY_C:
+                    chip->key[0xB] = 1;
+                    break;
+                //F
+                case ALLEGRO_KEY_V:
+                    chip->key[0xF] = 1;
+                    break;
+
+                case ALLEGRO_KEY_ESCAPE:
+                    return 1;
+                    break;
+
+            }
+
+        }
+        else if (evento.type == ALLEGRO_EVENT_KEY_UP)
+        {
+            //verifica qual tecla foi solta
+            switch(evento.keyboard.keycode)
+            {
+                //1
+                case ALLEGRO_KEY_1:
+                    chip->key[0x1] = 0; printf("\n tecla QQQQQQ");
+                    break;
+                //2
+                case ALLEGRO_KEY_2:
+                    chip->key[0x2] = 0;
+                    break;
+                //3
+                case ALLEGRO_KEY_3:
+                    chip->key[0x3] = 0;
+                    break;
+                //C
+                case ALLEGRO_KEY_4:
+                    chip->key[0xC] = 0;
+                    break;
+                //4
+                case ALLEGRO_KEY_Q:
+                    chip->key[0x4] = 0;
+                    break;
+                //5
+                case ALLEGRO_KEY_W:
+                    chip->key[0x5] = 0;
+                    break;
+                //6
+                case ALLEGRO_KEY_E:
+                    chip->key[0x6] = 0;
+                    break;
+                //D
+                case ALLEGRO_KEY_R:
+                    chip->key[0xD] = 0;
+                    break;
+                //7
+                case ALLEGRO_KEY_A:
+                    chip->key[0x7] = 0;
+                    break;
+                //8
+                case ALLEGRO_KEY_S:
+                    chip->key[0x8] = 0;
+                    break;
+                //9
+                case ALLEGRO_KEY_D:
+                    chip->key[0x9] = 0;
+                    break;
+                //E
+                case ALLEGRO_KEY_F:
+                    chip->key[0xE] = 0;
+                    break;
+                //A
+                case ALLEGRO_KEY_Y:
+                    chip->key[0xA] = 0;
+                    break;
+                //0
+                case ALLEGRO_KEY_X:
+                    chip->key[0x0] = 0;
+                    break;
+                //B
+                case ALLEGRO_KEY_C:
+                    chip->key[0xB] = 0;
+                    break;
+                //F
+                case ALLEGRO_KEY_V:
+                    chip->key[0xF] = 0;
+                    break;
+            }
+        }
+            if((chip->drawflag == true) && (al_is_event_queue_empty(fila_eventos))) {
+                chip->drawflag = false;
+
+            al_clear_to_color(al_map_rgb(0,0,0));
+            //printf("desenhando\n");
+            int eixox=0,eixoy=0;
+
+            for(int l=0; l < 2048;l++){
+                unsigned char test = chip->graphics[l];
+
+                if(eixox==64){
+                    eixox=0;
+                    eixoy+=1;
+                }
+                if(test == 1){
+                    al_set_target_bitmap(al_get_backbuffer(janela));
+                    al_draw_bitmap(quadrado,eixox*10, eixoy*10, 0);
+                    al_set_target_bitmap(quadrado);
+                    al_clear_to_color(al_map_rgb(255, 255, 255));
+
+                }
+                else{
+                    al_set_target_bitmap(al_get_backbuffer(janela));
+                    al_draw_bitmap(quadrado,eixox*10, eixoy*10, 0);
+                    al_set_target_bitmap(quadrado);
+                    al_clear_to_color(al_map_rgb(0, 0, 0));
+                }
+                eixox+=1;
+            }
+
+        al_flip_display();
+        }
+
+        return 0;
+    }
 

@@ -18,7 +18,7 @@ typedef struct chip8
     unsigned char key[16];
     unsigned short pc;
     unsigned char graphics[64 * 32];
-    int drawflag;
+    bool drawflag;
 }CHIP8;
 
 //funcoes
@@ -27,6 +27,7 @@ void carregarArquivo(const char* , CHIP8 *);
 void emular(CHIP8 *);
 int desenhar(CHIP8 *);
 int abrir_tela();
+int tratar_teclas(CHIP8 *);
 
 
 
