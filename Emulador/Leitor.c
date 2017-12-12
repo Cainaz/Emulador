@@ -19,25 +19,24 @@ int sair = 0;
 
 //definindo chip fontset
 unsigned char chip8_fontset[80] =
-{
-  0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
-  0x20, 0x60, 0x20, 0x20, 0x70, // 1
-  0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
-  0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
-  0x90, 0x90, 0xF0, 0x10, 0x10, // 4
-  0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
-  0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
-  0xF0, 0x10, 0x20, 0x40, 0x40, // 7
-  0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
-  0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
-  0xF0, 0x90, 0xF0, 0x90, 0x90, // A
-  0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
-  0xF0, 0x80, 0x80, 0x80, 0xF0, // C
-  0xE0, 0x90, 0x90, 0x90, 0xE0, // D
-  0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
-  0xF0, 0x80, 0xF0, 0x80, 0x80  // F
+	{
+		0xF0, 0x90, 0x90, 0x90, 0xF0, //0
+		0x20, 0x60, 0x20, 0x20, 0x70, //1
+		0xF0, 0x10, 0xF0, 0x80, 0xF0, //2
+		0xF0, 0x10, 0xF0, 0x10, 0xF0, //3
+		0x90, 0x90, 0xF0, 0x10, 0x10, //4
+		0xF0, 0x80, 0xF0, 0x10, 0xF0, //5
+		0xF0, 0x80, 0xF0, 0x90, 0xF0, //6
+		0xF0, 0x10, 0x20, 0x40, 0x40, //7
+		0xF0, 0x90, 0xF0, 0x90, 0xF0, //8
+		0xF0, 0x90, 0xF0, 0x10, 0xF0, //9
+		0xF0, 0x90, 0xF0, 0x90, 0x90, //A
+		0xE0, 0x90, 0xE0, 0x90, 0xE0, //B
+		0xF0, 0x80, 0x80, 0x80, 0xF0, //C
+		0xE0, 0x90, 0x90, 0x90, 0xE0, //D
+		0xF0, 0x80, 0xF0, 0x80, 0xF0, //E
+		0xF0, 0x80, 0xF0, 0x80, 0x80  //F
 };
-
 void inicializar_chip8(CHIP8 *chip)
 {
     chip->opcode = 0;
@@ -46,7 +45,17 @@ void inicializar_chip8(CHIP8 *chip)
     chip->sp=0;
     chip->sound_timer=0;
     chip->pc &= 0;
-    chip->drawflag = 0;
+
+    for (int i = 0; i < 4096; i++)
+        chip->memory[i] = 0;
+
+    for(int i = 0; i < 16; ++i) // Clear stack
+        chip->stack[i] = 0;
+
+    /*for (int i = 0; i < 80; i++)
+        chip->memory[i+0x000] = chip8_fontset[i];
+    */
+    chip->drawflag = true;
 }
 
 void carregar_jogo(const char *narq, CHIP8 *chip){
@@ -82,7 +91,7 @@ void emular(CHIP8 *chip){
   {
 
     case 0x0000:
-        switch(chip->opcode & 0x00FF)
+        switch(chip->opcode & 0x000F)
         {
             case 0x0000: //limpa a tela
                 memset(chip->graphics, 0, sizeof(chip->graphics));
@@ -90,14 +99,14 @@ void emular(CHIP8 *chip){
                 chip->drawflag =1;
             break;
 
-            case 0x00EE: //retorna de uma subrotina
+            case 0x000E: //retorna de uma subrotina
                 chip->sp = chip->sp - 1;
                 chip->pc = chip->stack[chip->sp];
                 chip->pc += 2;
             break;
 
             default:
-                printf ("Opcode desconhecido 1111 [0x0000]: 0x%X\n", chip->opcode);
+                printf ("Opcode desconhecido 1 [0x0000]: 0x%X\n", chip->opcode);
         }
     break;
 
@@ -208,7 +217,7 @@ void emular(CHIP8 *chip){
                     chip->pc += 2;
                 break;
 
-                default: printf("Opcode desconhecido: 0x%x\n",chip->opcode);
+                default: printf("Opcode desconhecido2: 0x%x\n",chip->opcode);
 
             }
         break;
@@ -277,7 +286,7 @@ void emular(CHIP8 *chip){
                 break;
 
                 default:
-                    printf ("Opcode desconhecido: 0x%X\n", chip->opcode);
+                    printf ("Opcode desconhecido3: 0x%X\n", chip->opcode);
 }
     break;
 
@@ -347,12 +356,12 @@ void emular(CHIP8 *chip){
                 chip->pc += 2;
             break;
 
-            default: printf("Opcode desconhecido: 0x%X\n", chip->opcode);
+            default: printf("Opcode desconhecido4: 0x%X\n", chip->opcode);
         }
     break;
 
     default:
-      printf ("Opcode desconhecido: 0x%X\n", chip->opcode);
+      printf ("Opcode desconhecido5: 0x%X\n", chip->opcode);
   }
 
 
@@ -396,7 +405,7 @@ bool iniciar_alegro()
 
     al_set_window_title(janela, "CHIP8");
 
-    quadrado = al_create_bitmap(10, 10);
+    quadrado = al_create_bitmap(mod_pixel, mod_pixel);
     if (!quadrado){
         error_msg("Falha ao criar bitmap");
         al_destroy_timer(timer);
@@ -424,7 +433,7 @@ bool iniciar_alegro()
         return false;
     }
 
-    sample = al_load_sample("efeito.wav");
+    sample = al_load_sample("effect.wav");
     if (!sample)
     {
         fprintf(stderr, "Falha ao carregar sample.\n");
@@ -445,6 +454,7 @@ bool iniciar_alegro()
     al_register_event_source(fila_eventos, al_get_display_event_source(janela));
     al_register_event_source(fila_eventos, al_get_timer_event_source(timer));
     al_register_event_source(fila_eventos, al_get_keyboard_event_source());
+
     al_clear_to_color(al_map_rgb(0,0,0));
     al_flip_display();
     al_start_timer(timer);
@@ -626,17 +636,22 @@ int ler_desenhar(CHIP8 * chip, const char *narq)
                 unsigned char pintar = chip->graphics[l];
 
                 if(pintar == 1){
-                    al_set_target_bitmap(al_get_backbuffer(janela));
-                    al_draw_bitmap(quadrado,eixo_x*mod_pixel, eixo_y*mod_pixel, 0);
+
+                    al_draw_bitmap(quadrado,eixo_x*(mod_pixel), eixo_y*(mod_pixel), 0);
                     al_set_target_bitmap(quadrado);
                     al_clear_to_color(al_map_rgb(255, 255, 255));
+                    al_set_target_bitmap(al_get_backbuffer(janela));
+
 
                 }
                 else{
-                    al_set_target_bitmap(al_get_backbuffer(janela));
-                    al_draw_bitmap(quadrado,eixo_x*mod_pixel, eixo_y*mod_pixel, 0);
+
+                    al_draw_bitmap(quadrado,eixo_x*(mod_pixel), eixo_y*(mod_pixel), 0);
                     al_set_target_bitmap(quadrado);
                     al_clear_to_color(al_map_rgb(0, 0, 0));
+                    al_set_target_bitmap(al_get_backbuffer(janela));
+
+
                 }
                 eixo_x+=1;
 
