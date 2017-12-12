@@ -20,6 +20,7 @@ int main(int argc, char *argv[]){
   {
     puts("Falha ao inicializar a Allegro");
     exit(EXIT_FAILURE);
+    return 0;
 }
     while(!sair){
     emular(&chip);     //Função de leitura dos opcodes

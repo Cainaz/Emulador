@@ -5,6 +5,7 @@
 #define ALTURA_TELA 320
 #define memsize 4096
 #define resolucao 64*32
+#define mod_pixel 10
 //#endif // LEITOR_H_INCLUDED
 
 
@@ -28,9 +29,10 @@ typedef struct chip8
 void inicializar_chip8(CHIP8 *);
 void carregar_jogo(const char* , CHIP8 *);
 void emular(CHIP8 *);
-int iniciar_alegro();
+bool iniciar_alegro();
 int ler_desenhar(CHIP8 *,const char*);
 void reset(CHIP8 *, const char*);
+int fechar_jogo();
 
 
 

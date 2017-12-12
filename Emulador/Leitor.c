@@ -5,6 +5,8 @@
 #include <stdint.h>
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_native_dialog.h>
+#include <allegro5/allegro_audio.h>
+#include <allegro5/allegro_acodec.h>
 #include "Leitor.h"
 
 //definindo biblioteca grafica
@@ -12,6 +14,7 @@ ALLEGRO_DISPLAY *janela = NULL;
 ALLEGRO_EVENT_QUEUE *fila_eventos = NULL;
 ALLEGRO_TIMER *timer = NULL;
 ALLEGRO_BITMAP *quadrado = NULL;
+ALLEGRO_SAMPLE *sample = NULL;
 int sair = 0;
 
 //definindo chip fontset
@@ -67,8 +70,7 @@ void carregar_jogo(const char *narq, CHIP8 *chip){
 }
 
 void emular(CHIP8 *chip){
-    unsigned short * keys;
-    int y, x, i =0;
+    int y, i =0;
     unsigned short vx, vy =0;
     unsigned short height, pixel=0;
 
@@ -80,7 +82,7 @@ void emular(CHIP8 *chip){
   {
 
     case 0x0000:
-        switch(chip->opcode & 0x000F)
+        switch(chip->opcode & 0x00FF)
         {
             case 0x0000: //limpa a tela
                 memset(chip->graphics, 0, sizeof(chip->graphics));
@@ -88,14 +90,14 @@ void emular(CHIP8 *chip){
                 chip->drawflag =1;
             break;
 
-            case 0x000E: //retorna de uma subrotina
+            case 0x00EE: //retorna de uma subrotina
                 chip->sp = chip->sp - 1;
                 chip->pc = chip->stack[chip->sp];
                 chip->pc += 2;
             break;
 
             default:
-                printf ("Opcode desconhecido [0x0000]: 0x%X\n", chip->opcode);
+                printf ("Opcode desconhecido 1111 [0x0000]: 0x%X\n", chip->opcode);
         }
     break;
 
@@ -164,12 +166,11 @@ void emular(CHIP8 *chip){
                 break;
 
                 case 0x0004: //adiciona Vy em Vx. VF é setado em 1 quando há um carry, e para 0 se não houver
-                    if(chip->V[(chip->opcode & 0x00F0) >> 4] > (chip->V[(chip->opcode & 0x0F00) >> 8]))
+                    chip->V[(chip->opcode & 0x0F00) >> 8] = chip->V[(chip->opcode & 0x0F00) >> 8] + chip->V[(chip->opcode & 0x00F0) >> 4];
+                    if(chip->V[(chip->opcode & 0x00F0) >> 4] > (0xFF - chip->V[(chip->opcode & 0x0F00) >> 8]))
                         chip->V[0xF] = 1;
                     else
                         chip->V[0xF] = 0;
-
-                    chip->V[(chip->opcode & 0x0F00) >> 8] = chip->V[(chip->opcode & 0x0F00) >> 8] + chip->V[(chip->opcode & 0x00F0) >> 4];
 
                     chip->pc += 2;
                 break;
@@ -290,11 +291,9 @@ void emular(CHIP8 *chip){
 
             case 0x000A://keys***
             {
-                bool teclaPressionada = 0;
                 for(i = 0; i < 16; i++){
                             if(chip->key[i] !=0){
                                 chip->V[(chip->opcode & 0x0F00) >> 8] = i;
-                                teclaPressionada = true;
                             }
                              if(chip->key[i] != 1)
                                 return;
@@ -364,7 +363,7 @@ void emular(CHIP8 *chip){
   if(chip->sound_timer > 0)
   {
     if(chip->sound_timer == 1)
-        printf("BEEP!\n");
+        al_play_sample(sample, 1.0, 0.0, 1.0, ALLEGRO_PLAYMODE_ONCE, NULL);
     chip->sound_timer = chip->sound_timer - 1;
   }
 
@@ -374,25 +373,25 @@ void error_msg(char *text){
 		"Ocorreu o seguinte erro e o programa sera finalizado:",
 		text,NULL,ALLEGRO_MESSAGEBOX_ERROR);
 }
-int iniciar_alegro()
+bool iniciar_alegro()
 {
     if (!al_init()){
         error_msg("Falha ao inicializar a Allegro");
-        return 0;
+        return false;
     }
 
     //cria o timer com o intervalo de tempo que ele ira disparar
     timer = al_create_timer(1.0 / FPS);
     if(!timer) {
         error_msg("Falha ao criar temporizador");
-        return 0;
+        return false;
     }
 
     janela = al_create_display(LARGURA_TELA, ALTURA_TELA);
     if(!janela) {
         error_msg("Falha ao criar janela");
         al_destroy_timer(timer);
-        return 0;
+        return false;
     }
 
     al_set_window_title(janela, "CHIP8");
@@ -402,11 +401,35 @@ int iniciar_alegro()
         error_msg("Falha ao criar bitmap");
         al_destroy_timer(timer);
         al_destroy_display(janela);
-        return 0;
+        return false;
     }
     if (!al_install_keyboard()){
         error_msg("Falha ao inicializar o teclado");
-        return 0;
+        return false;
+    }
+     if (!al_install_audio())
+    {
+        fprintf(stderr, "Falha ao inicializar áudio.\n");
+        return false;
+    }
+
+    if (!al_init_acodec_addon())
+    {
+        fprintf(stderr, "Falha ao inicializar codecs de áudio.\n");
+        return false;
+    }
+    if (!al_reserve_samples(1))
+    {
+        fprintf(stderr, "Falha ao alocar canais de áudio.\n");
+        return false;
+    }
+
+    sample = al_load_sample("efeito.wav");
+    if (!sample)
+    {
+        fprintf(stderr, "Falha ao carregar sample.\n");
+        al_destroy_display(janela);
+        return false;
     }
 
     fila_eventos = al_create_event_queue();
@@ -415,7 +438,8 @@ int iniciar_alegro()
         al_destroy_timer(timer);
         al_destroy_display(janela);
         al_destroy_bitmap(quadrado);
-        return 0;
+        al_destroy_sample(sample);
+        return false;
     }
 
     al_register_event_source(fila_eventos, al_get_display_event_source(janela));
@@ -425,7 +449,7 @@ int iniciar_alegro()
     al_flip_display();
     al_start_timer(timer);
 
-    return 1;
+    return true;
 }
 int ler_desenhar(CHIP8 * chip, const char *narq)
 {
@@ -596,30 +620,30 @@ int ler_desenhar(CHIP8 * chip, const char *narq)
                 chip->drawflag = false;
 
             al_clear_to_color(al_map_rgb(0,0,0));
-            //printf("desenhando\n");
             int eixo_x=0,eixo_y=0;
 
             for(int l=0; l < resolucao;l++){
                 unsigned char pintar = chip->graphics[l];
 
-                if(eixo_x==64){
-                    eixo_x=0;
-                    eixo_y+=1;
-                }
                 if(pintar == 1){
                     al_set_target_bitmap(al_get_backbuffer(janela));
-                    al_draw_bitmap(quadrado,eixo_x*10, eixo_y*10, 0);
+                    al_draw_bitmap(quadrado,eixo_x*mod_pixel, eixo_y*mod_pixel, 0);
                     al_set_target_bitmap(quadrado);
                     al_clear_to_color(al_map_rgb(255, 255, 255));
 
                 }
                 else{
                     al_set_target_bitmap(al_get_backbuffer(janela));
-                    al_draw_bitmap(quadrado,eixo_x*10, eixo_y*10, 0);
+                    al_draw_bitmap(quadrado,eixo_x*mod_pixel, eixo_y*mod_pixel, 0);
                     al_set_target_bitmap(quadrado);
                     al_clear_to_color(al_map_rgb(0, 0, 0));
                 }
                 eixo_x+=1;
+
+                if(eixo_x==64){
+                    eixo_x=0;
+                    eixo_y+=1;
+                }
             }
 
         al_flip_display();
@@ -632,6 +656,7 @@ int fechar_jogo(){
 	al_destroy_timer(timer);
 	al_destroy_display(janela);
 	al_destroy_event_queue(fila_eventos);
+	al_destroy_sample(sample);
 
 return 1;
 }
